@@ -1,33 +1,32 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"os"
 
 	"github.com/nikbonk/rss-gator/internal/config"
 )
 
-func readConfig() config.Config {
+type state struct {
+	configPtr *config.Config
+}
+
+func main() {
 	cfg, err := config.ReadConfig()
 	if err != nil {
 		log.Fatalf("error reading config: %v", err)
 	}
 
-	return cfg
+	appState := state{configPtr: &cfg}
+	cmds := commands{cmdMap: make(map[string]func(*state, command) error)}
+	cmds.register("login", handlerLogin)
 
-}
-
-func main() {
-	cfg := readConfig()
-
-	fmt.Printf("Readon config: %+v\n", cfg)
-
-	err := cfg.SetUser("niklas")
-	if err != nil {
-		log.Fatalf("error setting username in config: %v", err)
+	if len(os.Args) < 2 {
+		log.Fatal("Usage: cli <command> [args...]")
 	}
 
-	cfg = readConfig()
-	fmt.Printf("Read config again: %+v\n", cfg)
-
+	cmd := command{name: os.Args[1], arg: os.Args[2:]}
+	if err := cmds.run(&appState, cmd); err != nil {
+		log.Fatal(err)
+	}
 }
