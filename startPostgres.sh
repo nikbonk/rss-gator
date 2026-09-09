@@ -5,6 +5,7 @@ set -euo pipefail
 CONTAINER_NAME="postgres"
 VOLUME="postgres-data"
 
+# Prefer Podman, otherwise use Docker.
 if command -v podman >/dev/null 2>&1; then
     RUNTIME="podman"
 elif command -v docker >/dev/null 2>&1; then
@@ -28,14 +29,23 @@ if "$RUNTIME" container exists "$CONTAINER_NAME" 2>/dev/null; then
 fi
 
 # Create volume if needed.
-"$RUNTIME" volume inspect "$VOLUME" >/dev/null 2>&1 ||
+if ! "$RUNTIME" volume inspect "$VOLUME" >/dev/null 2>&1; then
+    echo "Creating volume '$VOLUME'..."
     "$RUNTIME" volume create "$VOLUME" >/dev/null
+fi
 
-echo "Creating Postgres container..."
+# Podman needs SELinux relabeling for the init bind mount.
+INIT_MOUNT="ro"
+if [ "$RUNTIME" = "podman" ]; then
+    INIT_MOUNT="ro,Z"
+fi
+
+echo "Creating Postgres container using $RUNTIME..."
 
 "$RUNTIME" run -d \
     --name "$CONTAINER_NAME" \
     -v "$VOLUME":/var/lib/postgresql \
+    -v "./init:/docker-entrypoint-initdb.d:$INIT_MOUNT" \
     -e POSTGRES_PASSWORD=postgres \
     -p 5432:5432 \
     postgres:latest
