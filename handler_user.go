@@ -65,3 +65,24 @@ func handlerReset(s *state, cmd command) error {
 	os.Exit(0)
 	return nil
 }
+
+func handlerGetUsers(s *state, cmd command) error {
+	if len(cmd.arg) != 0 {
+		return fmt.Errorf("Expected no arguments")
+	}
+
+	users, err := s.db.GetUsers(context.Background())
+	if err != nil {
+		return fmt.Errorf("Error while trying to retrieve users: %v", err)
+	}
+
+	for _, user := range users {
+		if user == s.configPtr.CurrentUserName {
+			fmt.Printf("%v (current) \n", user)
+		} else {
+			fmt.Println(user)
+		}
+	}
+
+	return nil
+}
