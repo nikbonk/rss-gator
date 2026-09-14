@@ -10,3 +10,6 @@ returning *;
 
 -- name: GetUser :one
 select * from users where name = $1;
+
+-- name: ResetUsers :exec
+delete from users;

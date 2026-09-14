@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -48,4 +49,19 @@ func handlerRegister(s *state, cmd command) error {
 
 	return nil
 
+}
+
+func handlerReset(s *state, cmd command) error {
+	if len(cmd.arg) != 0 {
+		return fmt.Errorf("Expected no arguments")
+	}
+
+	if err := s.db.ResetUsers(context.Background()); err != nil {
+		os.Exit(1)
+		return fmt.Errorf("Error while deleting users: %v", err)
+	}
+
+	fmt.Println("Successfully deleted users")
+	os.Exit(0)
+	return nil
 }
