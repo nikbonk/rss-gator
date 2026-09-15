@@ -42,8 +42,8 @@ func handlerAddFeed(s *state, cmd command) error {
 
 	feed, err := s.db.CreateFeed(context.Background(), database.CreateFeedParams{
 		ID:        uuid.New(),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
 		Name:      name,
 		Url:       url,
 		UserID:    user.ID,
