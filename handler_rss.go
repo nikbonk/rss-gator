@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"text/tabwriter"
 	"time"
 
 	"github.com/google/uuid"
@@ -56,4 +58,35 @@ func handlerAddFeed(s *state, cmd command) error {
 
 	return nil
 
+}
+
+func handlerGetUsersFeeds(s *state, cmd command) error {
+	if len(cmd.arg) != 0 {
+		return fmt.Errorf("Expected no arguments")
+	}
+
+	feeds, err := s.db.GetUsersFeeds(context.Background())
+	if err != nil {
+		return fmt.Errorf("Error while trying to retrieve feeds: %v", err)
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 4, 1, ' ', 0)
+	defer w.Flush()
+
+	fmt.Fprintln(w, "ID\tNAME\tURL\tUSER\tCREATED")
+	fmt.Fprintln(w, "--\t----\t---\t-------\t-------")
+
+	for _, feed := range feeds {
+		fmt.Fprintf(
+			w,
+			"%s\t%s\t%s\t%s\t%s\n",
+			feed.ID,
+			feed.Name_2,
+			feed.Url,
+			feed.Name,
+			feed.CreatedAt.Format("2006-01-02 15:04"),
+		)
+	}
+
+	return nil
 }

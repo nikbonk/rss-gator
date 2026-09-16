@@ -9,3 +9,9 @@ values (
   $6
 )
 returning *;
+
+-- name: GetUsersFeeds :many
+select *
+from users
+join feeds
+    on users.id = feeds.user_id;
