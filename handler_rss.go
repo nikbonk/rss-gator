@@ -30,17 +30,13 @@ func handlerFetch(s *state, cmd command) error {
 
 }
 
-func handlerAddFeed(s *state, cmd command) error {
+func handlerAddFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.arg) != 2 {
 		return fmt.Errorf("Requires name and URL")
 	}
 
 	name := cmd.arg[0]
 	url := cmd.arg[1]
-	user, err := s.db.GetUser(context.Background(), s.configPtr.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("Error while trying to retrieve gatorconfig user: %v", err)
-	}
 
 	feed, err := s.db.CreateFeed(context.Background(), database.CreateFeedParams{
 		ID:        uuid.New(),
@@ -57,7 +53,7 @@ func handlerAddFeed(s *state, cmd command) error {
 	fmt.Printf("%+v\n", feed)
 
 	followCmd := command{name: "follow", arg: []string{url}}
-	err = handlerFollowFeed(s, followCmd)
+	err = handlerFollowFeed(s, followCmd, user)
 	if err != nil {
 		return fmt.Errorf("Error while trying to add feed to follow table: %v", err)
 	}
@@ -97,50 +93,40 @@ func handlerGetUsersFeeds(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFollowFeed(s *state, cmd command) error {
+func handlerFollowFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.arg) == 0 {
 		return fmt.Errorf("Expected a URL")
 	}
 
 	url := cmd.arg[0]
 
-	currentUser, err := s.db.GetUser(context.Background(), s.configPtr.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("Error while trying to retrieve gatorconfig user: %v", err)
-	}
-
 	feed, err := s.db.GetFeedByURL(context.Background(), url)
 	if err != nil {
 		return fmt.Errorf("Error while trying to retrieve feed: %v", err)
 	}
 
-	user, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+	followedFeed, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
-		UserID:    currentUser.ID,
+		UserID:    user.ID,
 		FeedID:    feed.ID,
 	})
 	if err != nil {
 		return fmt.Errorf("Error while trying to follow a feed: %v", err)
 	}
 
-	fmt.Printf("%v followed feed %v", user.UserName, feed.Name)
+	fmt.Printf("%v followed feed %v", followedFeed.UserName, followedFeed.FeedName)
 
 	return nil
 }
 
-func handlerGetFeedFollows(s *state, cmd command) error {
+func handlerGetFeedFollows(s *state, cmd command, user database.User) error {
 	if len(cmd.arg) != 0 {
 		return fmt.Errorf("Expected no arguments")
 	}
 
-	currentUser, err := s.db.GetUser(context.Background(), s.configPtr.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("Error while trying to retrieve gatorconfig user: %v", err)
-	}
-
-	follows, err := s.db.GetFeedFollowsForUser(context.Background(), currentUser.ID)
+	follows, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
 	if err != nil {
 		return fmt.Errorf("Error while trying to retrieved followed feeds: %v", err)
 	}
