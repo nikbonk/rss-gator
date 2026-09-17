@@ -39,6 +39,7 @@ func main() {
 	cmds.register("feeds", handlerGetUsersFeeds)
 	cmds.register("follow", middlewareLoggedIn(handlerFollowFeed))
 	cmds.register("following", middlewareLoggedIn(handlerGetFeedFollows))
+	cmds.register("unfollow", middlewareLoggedIn(handlerUnfollowFeed))
 
 	if len(os.Args) < 2 {
 		log.Fatal("Usage: cli <command> [args...]")
