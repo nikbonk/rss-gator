@@ -11,23 +11,25 @@ import (
 	"github.com/nikbonk/rss-gator/internal/database"
 )
 
-func handlerFetch(s *state, cmd command) error {
-	// if len(cmd.arg) == 0 {
-	// 	return fmt.Errorf("Expected a URL")
-	// }
-
-	// url := cmd.arg[0]
-	// quick static site check
-	url := "https://www.wagslane.dev/index.xml"
-	feed, err := fetchFeed(context.Background(), url)
-	if err != nil {
-		return fmt.Errorf("Error while trying to fetch rss feed: %v", err)
+func handlerAgg(s *state, cmd command) error {
+	if len(cmd.arg) == 0 {
+		return fmt.Errorf("Requires interval")
 	}
 
-	fmt.Printf("%+v\n", feed)
+	timeBetweenRequests, err := time.ParseDuration(cmd.arg[0])
+	if err != nil {
+		return fmt.Errorf("Invalid interval: %v", err)
+	}
 
-	return nil
+	ticker := time.NewTicker(timeBetweenRequests)
+	fmt.Printf("Collecting feeds every %v...", timeBetweenRequests)
 
+	for ; ; <-ticker.C {
+		err := scrapeFeeds(s)
+		if err != nil {
+			return fmt.Errorf("Error while scraping feeds: %v", err)
+		}
+	}
 }
 
 func handlerAddFeed(s *state, cmd command, user database.User) error {

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/xml"
+	"fmt"
 	"html"
 	"io"
 	"net/http"
@@ -23,6 +24,29 @@ type RSSItem struct {
 	Link        string `xml:"link"`
 	Description string `xml:"description"`
 	PubDate     string `xml:"pubDate"`
+}
+
+func scrapeFeeds(s *state) error {
+	nextFeed, err := s.db.GetNextFeedToFetch(context.Background())
+	if err != nil {
+		return fmt.Errorf("Error while getting next feed to fetch: %v", err)
+	}
+
+	err = s.db.MarkFeedFetched(context.Background(), nextFeed.ID)
+	if err != nil {
+		return fmt.Errorf("Error while marking feed fetched: %v", err)
+	}
+
+	feeds, err := fetchFeed(context.Background(), nextFeed.Url)
+	if err != nil {
+		return fmt.Errorf("Error while fetching feed: %v", err)
+	}
+
+	for _, feed := range feeds.Channel.Item {
+		fmt.Printf("Site: %v Feed: %v \n", feeds.Channel.Title, feed.Title)
+	}
+
+	return nil
 }
 
 func fetchFeed(ctx context.Context, feedUrl string) (*RSSFeed, error) {
