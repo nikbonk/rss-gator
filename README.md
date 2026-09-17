@@ -37,25 +37,12 @@ The repo includes a script to start PostgreSQL in either Podman or Docker.
 ./startPostgres.sh
 ```
 
-After PostgreSQL is running, the database connection used by rss-gator is:
+The script starts PostgreSQL and initializes the database for a fresh container.
+
+The database connection used by rss-gator is:
 
 ```text
 postgres://postgres:postgres@localhost:5432/gator?sslmode=disable
-```
-
-Run the database migrations with goose.
-
-First install goose:
-
-```bash
-go install github.com/pressly/goose/v3/cmd/goose@latest
-```
-
-Then from the repo root:
-
-```bash
-export GOOSE_MIGRATION_DIR="$(pwd)/sql/schema"
-goose postgres "postgres://postgres:postgres@localhost:5432/gator?sslmode=disable" up
 ```
 
 ## Config
@@ -150,6 +137,27 @@ go run . users
 go run . feeds
 go run . browse 10
 ```
+
+### Database migrations
+
+The database migrations are stored in `sql/schema` and are managed with goose.
+
+First install goose:
+
+```bash
+go install github.com/pressly/goose/v3/cmd/goose@latest
+```
+
+Then from the repo root:
+
+```bash
+export GOOSE_MIGRATION_DIR="$(pwd)/sql/schema"
+goose postgres "postgres://postgres:postgres@localhost:5432/gator?sslmode=disable" up
+```
+
+The `init` directory contains the schema used when starting a fresh PostgreSQL container, so you do not need to run the migrations just to get a new development database running with `startPostgres.sh`.
+
+### Building
 
 You can also build the binary yourself:
 
