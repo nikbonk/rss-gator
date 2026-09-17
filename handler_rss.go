@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -178,4 +180,63 @@ func handlerGetFeedFollows(s *state, cmd command, user database.User) error {
 	}
 
 	return nil
+}
+
+func handlerBrowseFeeds(s *state, cmd command, user database.User) error {
+	var limit string
+	if len(cmd.arg) == 0 {
+		limit = "2"
+	} else {
+		limit = cmd.arg[0]
+	}
+
+	postLimit, err := strconv.Atoi(limit)
+	if err != nil {
+		return fmt.Errorf("Error while trying to parse post limit: %v\n", err)
+	}
+
+	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit:  int32(postLimit),
+	})
+	if err != nil {
+		return fmt.Errorf("Error while trying to retrieve posts: %v", err)
+	}
+
+	for _, post := range posts {
+		p := PostItem{
+			Title:       post.Title,
+			PublishedAt: post.PublishedAt.Time,
+			URL:         post.Url,
+			Description: post.Description.String,
+		}
+		printPost(p)
+	}
+
+	return nil
+}
+
+type PostItem struct {
+	Title       string
+	PublishedAt time.Time
+	URL         string
+	Description string
+}
+
+func printPost(p PostItem) {
+	divider := strings.Repeat("-", 60)
+
+	fmt.Println(divider)
+	// Bold title: \033[1m enables bold, \033[0m resets
+	fmt.Printf("\033[1m%s\033[0m\n", p.Title)
+
+	if !p.PublishedAt.IsZero() {
+		fmt.Printf("Published: %s\n", p.PublishedAt.Format("2006-01-02 15:04"))
+	}
+
+	fmt.Printf("Link:      %s\n", p.URL)
+
+	if p.Description != "" {
+		fmt.Printf("\n%s\n", p.Description)
+	}
 }

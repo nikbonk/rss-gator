@@ -2,12 +2,16 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/xml"
 	"fmt"
 	"html"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/nikbonk/rss-gator/internal/database"
 )
 
 type RSSFeed struct {
@@ -42,8 +46,38 @@ func scrapeFeeds(s *state) error {
 		return fmt.Errorf("Error while fetching feed: %v", err)
 	}
 
+	timeLayouts := []string{time.RFC1123Z, time.RFC1123}
 	for _, feed := range feeds.Channel.Item {
-		fmt.Printf("Site: %v Feed: %v \n", feeds.Channel.Title, feed.Title)
+		var publishDate time.Time
+		for _, layout := range timeLayouts {
+			if parsedDate, err := time.Parse(layout, feed.PubDate); err == nil {
+				publishDate = parsedDate
+				break
+			}
+		}
+		publishedAt := sql.NullTime{
+			Time:  publishDate,
+			Valid: !publishDate.IsZero(),
+		}
+
+		description := sql.NullString{
+			String: feed.Description,
+			Valid:  feed.Description != "",
+		}
+
+		err := s.db.CreatePost(context.Background(), database.CreatePostParams{
+			ID:          uuid.New(),
+			CreatedAt:   time.Now().UTC(),
+			UpdatedAt:   time.Now().UTC(),
+			Title:       feed.Title,
+			Url:         feed.Link,
+			Description: description,
+			PublishedAt: publishedAt,
+			FeedID:      nextFeed.ID,
+		})
+		if err != nil {
+			return fmt.Errorf("Error while creating post: %v", err)
+		}
 	}
 
 	return nil
